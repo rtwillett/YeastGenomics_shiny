@@ -1,0 +1,94 @@
+ID,primary,secondary,additional_information
+AFIQCI,wildtype,wildtype 1
+AFIQBR,wildtype,wildtype 2
+AFIINC,itc1,itc1-1_dUTP
+AFNAQI,itc1,itc1-1_dUTP
+AFNCCR,swr1,swr1 mutant
+AFNCCA,swr1,swr1 mutant
+FABINB,tet-STH1,<not provided>
+FABINF,tet-STH1,<not provided>
+FAFAFF,tet-INO80,tet-ino80
+FAFAFQ,tet-INO80,tet-ino80
+FAFAQQ,tet-control strain,tet-control
+FAFASB,tet-control strain,tet-control
+FFNARI,Strain5,phenol lysis
+FFNARS,Strain5,phenol lysis
+FFNARN,Strain6,phenol lysis
+FFNAAR,Strain6,phenol lysis
+FFNAAA,Strain6,phenol lysis
+FFNAAA,Strain6,phenol lysis
+FFNAAC,Strain7,phenol lysis
+FFNAAQ,Strain7,phenol lysis
+QCAQFQ,wildtype,Mat a
+QCAQFI,wildtype,Mat a
+QCAQFS,anMX4,BY4741 background
+QCAQFN,anMX4,BY4741 background
+QCFFAB,rrp6,rrp6
+QCFQIA,rrp6,rrp6
+QNCSCQ,MATa MAL2-8c SUC2,CEN.PK113-7D
+QNCSCI,MATa MAL2-8c SUC2,CEN.PK113-7D
+QNCSCS,MATa ura3-52 his3-1 leu2-3, hxk1::KlLEU2,IMX372
+QNCSCN,MATa ura3-52 his3-1 leu2-3, hxk1::KlLEU2,IMX372
+IAAICF,hybrid  cerevisiae x  paradoxus ,Citrinin
+IAAICQ,hybrid  cerevisiae x  paradoxus,Citrinin
+IAAICI,hybrid  cerevisiae x  paradoxus,Untreated
+IAAICS,hybrid  cerevisiae x  paradoxus,Untreated
+IFAAAR,DDY3630,strain W303
+IFAAAA,DDY4300,strain W303
+IFAAAA,DDY4301,strain W303
+IFFABC,E1A1,ethanol
+IFFABB,E1A2,ethanol
+IFFABF,E1B1,ethanol
+IFFABQ,E1B2,ethanol
+IFFABI,E2A1,ethanol
+IFFABS,E2A2,ethanol
+IFFABN,E2B1,ethanol
+IFFAFR,E2B2,ethanol
+IFFAFA,G1A1,glucose
+IFFAFA,G1A2,glucose
+IFFAFC,G1B1,glucose
+IFFAFB,G1B2,glucose
+IFFAFF,G2A1,glucose
+IFFAFQ,G2A2,glucose
+IFFAFI,G2B1,glucose
+IFFAFS,G2B2,glucose
+INICIR,YB210,biofuel generation
+INICIA,YB210,biofuel generation
+INICIA,YB210,biofuel generation
+INICIC,YB211,biofuel generation
+INICIB,YB211,biofuel generation
+INICIF,YB211,biofuel generation
+INICIQ,YB212,biofuel generation
+INICII,YB212,biofuel generation
+INICIS,YB212,biofuel generation
+INICIN,YB213,biofuel generation
+INICSR,YB213,biofuel generation
+INICSA,YB213,biofuel generation
+SAABRQ,wild type,none
+SAASAQ,wild type,galactose
+SAASCC,pbs2,galactose
+SAASCF,ste12,galactose
+SAANNN,wild type,tunicamycin
+SAARRR,pbs2,tunicamycin
+SAARRS,wild type,salt stress
+SAARAA,pbs2,salt stress
+SARIAI,fy3,chemostat
+SARICB,fy3,chemostat
+SAABBN,15 deg,temperature
+SAABFR,15 deg,temperature
+SAABFA,15 deg,temperature
+SAABFA,15 deg,temperature
+SAABFI,37 deg,temperature
+SAABFS,37 deg,temperature
+SAABFN,37 deg,temperature
+SAABQR,37 deg,temperature
+SAABQF,30 deg,temperature
+SAABQQ,30 deg,temperature
+SAABQI,30 deg,temperature
+SAABQS,30 deg,temperature
+SAABIC,37 deg ,temperature,dedbox1
+SAABIB,37 deg,temperature,dedbox1
+SAABIF,37 deg,temperature,dedbox1
+SAABIQ,37 deg,temperature,dedbox1
+SICIBA,undocumented,undocumented
+
