@@ -1,0 +1,148 @@
+---
+title: "EDA for NYCDSA Shiny Project"
+author: "Ryan Willett"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dendextend)
+library(ape)
+```
+
+
+Read in expression data from the data file. It is currently arranged to that the yeast strains (observations) are in the column and the gene names (variables) are in the row. I applied a transpose to switch the columns and rows.
+```{r}
+data <- read.csv(file="./data/SC_expression.csv", stringsAsFactors = F, row.names = 1, header = T)
+conditions <- read.csv(file="./data/conditions_annotation.csv", stringsAsFactors = F, header = T)
+data <- as.data.frame(t(data))
+```
+
+
+```{r}
+# Inspecting that the data looks OK
+data[1:20, 1:10]
+```
+
+Bringing in the condition data labels
+```{r}
+data <- data %>% rownames_to_column("ID") # Making ID column from the rownames so I can join with conditions table
+
+data <- left_join(data, conditions, by="ID") # Binding the experimental conditions to the expression data
+
+data$additional_information <- NULL # Don't need this column and it is mostly blank
+```
+
+Cleaning
+```{r}
+data <- data %>% 
+  mutate(primary = gsub("wild type", "wildtype", primary)) %>% # Aligning the format of control name
+  mutate(primary = gsub("^YB.*", "Biofuel.Production.Strain", primary)) %>%
+  mutate(primary = gsub("^37.*", "37 deg", primary)) %>% # These were not grouped properly. Renamed to align
+  mutate(primary = gsub("^Strain.*", "Phenol.Lysis", primary)) %>% 
+  mutate(primary = gsub("^DDY.*", "Strain.W303", primary)) %>% 
+  mutate(primary = gsub("^E.*", "Ethanol", primary)) %>% 
+  mutate(primary = gsub("^G.*", "Glucose", primary)) %>% 
+  mutate(primary = gsub("^hybrid.*", "hybrid cerevisiae x paradoxus", primary)) %>% select(-secondary, -ID)
+
+
+```
+
+
+```{r}
+# To explore the categories in the dataset
+data %>% group_by(primary) %>% tally() 
+
+levels(factor(data$primary))
+```
+
+Clustering analysis
+```{r}
+data_raw <- data %>% select(-primary) # Removing categorical data so they are not used in the clustering
+
+d <- dist(as.matrix(data_raw)) #cancer_data is used so as not to bias the clustering with the known tumor classification in cancer_join
+cat_n <- 4
+hc <- hclust(d, method="ward.D")
+hc <- as.dendrogram(hc)
+
+#Plot the data
+#cols_branches <- c("blue", "green", "red", "black", "orange")
+dend <- color_branches(hc, k=cat_n, col = c("blue", "green", "red", "black", "orange"))
+#labels(dend) <- NULL # Remove labels because they make the image too busy
+plot(dend, main = "Clustering Based on 4 Classes")
+
+
+# circlize_dendrogram(dend)
+plot(dend, type = "triangle", ylab = "Height")
+
+dend <- dend %>% set("labels", "")
+rad_dend_col <- c("blue", "green", "red", "black", "orange")
+clus <- cutree(hc, 4)
+plot(as.phylo(hc), type="fan", tip.color = rad_dend_col[clus], label.offset = 1, main = "Clustering Based on 4 Classes")
+
+ggplot(dend) +
+  coord_polar(theta = "x") +
+  scale_y_reverse(expand = c(0.2, 0))
+```
+
+```{r}
+data_means <- data %>% 
+  filter(!is.na(primary)) %>% 
+  group_by(primary) %>% 
+  summarise_all(list(mean = mean)) %>% 
+  column_to_rownames("primary") %>% t() %>% as.data.frame()
+
+data_pval <- data %>% 
+  filter(!is.na(primary) & (primary == "wildtype" | primary == "Biofuel.Production.Strain")) #%>% 
+
+var_split <- split(data_pval, data_pval$primary)
+
+# Split list of dfs into 2 dfs named for the split variable
+lapply(names(var_split), function(x) assign(x, var_split[[x]], envir = .GlobalEnv)) 
+comparator1 <- Biofuel.Production.Strain %>% 
+  mutate(group = "Biofuel") #%>% t() %>% as.data.frame()
+comparator2 <- wildtype %>% 
+  mutate(group = "wt") #%>% t() %>% as.data.frame()
+
+p_val_calc <- inner_join(comparator1, comparator2, by="group")
+
+
+aov
+
+data_sds <- data %>% 
+  filter(!is.na(primary)) %>% 
+  group_by(primary) %>% 
+  summarise_all(list(sd = sd)) %>% 
+  column_to_rownames("primary") %>% t() %>% as.data.frame()
+
+# allgenes <- d %>% filter(pvalue <= 0.05) %>% 
+#   mutate(neg_pL10 = -1*(log10(pvalue)), 
+#          l2change = (ifelse(Fold_Change>0, log2(Fold_Change), (-1*log2(-1*Fold_Change))))) %>% 
+#   mutate(color_cat = ifelse(neg_pL10 > 1.3, 1, 0))
+```
+
+```{r}
+# Volcano plot from microarray project file. Specialize it for this project.
+expr_diff <- data_means %>% select(wildtype, Biofuel.Production.Strain) %>% 
+  mutate(exp_diff = Biofuel.Production.Strain - wildtype) %>% 
+  mutate(l2change = (ifelse(exp_diff>0, log2(exp_diff), (-1*log2(-1*exp_diff))))) 
+  
+
+
+#### Creating test p-values for plotting ####
+
+test_pval = as.data.frame(0.01*rpois(6071, lambda = 1))
+colnames(test_pval) <- "test_pval"
+expr_diff <- cbind(expr_diff, test_pval)
+
+expr_diff <- expr_diff %>% 
+  mutate(neg_pL10 = -1*(log10(test_pval)))
+
+
+
+ggplot(expr_diff, aes(x=l2change, y=neg_pL10)) +
+  geom_point(size=0.2) +
+  scale_y_continuous(trans="log10")
+```
+
