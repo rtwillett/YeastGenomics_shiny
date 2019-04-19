@@ -7,6 +7,7 @@ output: html_notebook
 ```{r}
 library(tidyverse)
 library(ggplot2)
+library(ggrepel)
 library(dendextend)
 library(ape)
 ```
@@ -25,6 +26,7 @@ data <- as.data.frame(t(data))
 data[1:20, 1:10]
 ```
 
+
 Bringing in the condition data labels
 ```{r}
 data <- data %>% rownames_to_column("ID") # Making ID column from the rownames so I can join with conditions table
@@ -34,7 +36,7 @@ data <- left_join(data, conditions, by="ID") # Binding the experimental conditio
 data$additional_information <- NULL # Don't need this column and it is mostly blank
 ```
 
-Cleaning
+Cleaning up the categories
 ```{r}
 data <- data %>% 
   mutate(primary = gsub("wild type", "wildtype", primary)) %>% # Aligning the format of control name
@@ -44,7 +46,8 @@ data <- data %>%
   mutate(primary = gsub("^DDY.*", "Strain.W303", primary)) %>% 
   mutate(primary = gsub("^E.*", "Ethanol", primary)) %>% 
   mutate(primary = gsub("^G.*", "Glucose", primary)) %>% 
-  mutate(primary = gsub("^hybrid.*", "hybrid cerevisiae x paradoxus", primary)) %>% select(-secondary, -ID)
+  mutate(primary = gsub("^hybrid.*", "hybrid cerevisiae x paradoxus", primary)) %>% select(-secondary, -ID) %>% 
+  filter(!is.na(primary))
 
 
 ```
@@ -55,6 +58,87 @@ data <- data %>%
 data %>% group_by(primary) %>% tally() 
 
 levels(factor(data$primary))
+```
+
+Filtering with the inputs from the user
+```{r}
+input1 <- "wildtype"
+input2 <- "Biofuel.Production.Strain"
+
+data_subcat <- data %>% filter(primary == input1 | primary == input2) # Filtering for the groups to be compared
+```
+
+Evaluation of the statistical difference between the selected groups. This will be between 2 groups, so it's a t-test
+```{r}
+p_eval <- function(x, y) {
+  ttest_res <- t.test(x,y) # t-test against the 2 categories to determine significance
+  p.val <- ttest_res$p.val # Extracting the p-value from the t.test output
+  return(p.val)
+}
+```
+
+
+```{r}
+#Descriptive statistics
+
+data_means <- data %>%
+  group_by(primary) %>% 
+  summarise_all(list(mean = mean)) %>% 
+  column_to_rownames("primary") %>% 
+  t() %>% as.data.frame()  # Transposing the df (converts to matrix) and reclassifying as a df
+
+data_sds <- data %>% 
+  group_by(primary) %>% 
+  summarise_all(list(sd = sd)) %>% 
+  column_to_rownames("primary") %>% 
+  t() %>% as.data.frame()  # Transposing the df (converts to matrix) and reclassifying as a df
+
+```
+
+```{r}
+
+subcat_in1 <- data_subcat %>% filter(primary == input1)
+
+subcat_in2 <- data_subcat %>% filter(primary == input2)
+
+pstats <- c()
+
+for (c in 1:(ncol(data_subcat)-1)){ 
+  test1 <- subcat_in1[,c]
+  test2 <- subcat_in2[,c]
+  
+  p <- p_eval(test1, test2)
+  pstats[c] <- p # Build up p-values list into a vector
+}
+```
+
+```{r}
+data_means_sub <- data_means %>% select(input1, input2) %>% rownames_to_column("genes") %>% mutate(genes = gsub("_mean", "", genes))
+
+data_means_sub <- cbind(data_means_sub, pstats)
+
+data_means_sub <- data_means_sub %>% 
+  mutate(fold.change = data_means_sub[,3]/data_means_sub[,2],
+         l2fc = (log2(data_means_sub[,3]) - log2(data_means_sub[,2])), 
+         neg_pL10 = -1*log10(pstats))
+
+
+
+```
+
+```{r}
+t <- theme_classic()
+plot_colors <- scale_color_manual(values = c("black", "red", "green"))
+#### Creating test p-values for plotting ####
+
+data_means_sub <- data_means_sub %>% mutate(col_flag = ifelse(((l2fc>=1 | l2fc<=-1) & neg_pL10 > 1.3),1,0))
+
+sig_genes <- data_means_sub %>% filter(col_flag == 1) %>% select(-col_flag)
+
+ggplot(data_means_sub, aes(x=l2fc, y=neg_pL10, col=as.factor(col_flag))) + t + 
+  geom_point(size=0.2) + #+scale_y_continuous(trans="log10")
+  plot_colors +
+  labs(x = "log2 Fold Change in Gene Expression", y = "-log10(p-value)")
 ```
 
 Clustering analysis
@@ -86,63 +170,5 @@ ggplot(dend) +
   scale_y_reverse(expand = c(0.2, 0))
 ```
 
-```{r}
-data_means <- data %>% 
-  filter(!is.na(primary)) %>% 
-  group_by(primary) %>% 
-  summarise_all(list(mean = mean)) %>% 
-  column_to_rownames("primary") %>% t() %>% as.data.frame()
 
-data_pval <- data %>% 
-  filter(!is.na(primary) & (primary == "wildtype" | primary == "Biofuel.Production.Strain")) #%>% 
-
-var_split <- split(data_pval, data_pval$primary)
-
-# Split list of dfs into 2 dfs named for the split variable
-lapply(names(var_split), function(x) assign(x, var_split[[x]], envir = .GlobalEnv)) 
-comparator1 <- Biofuel.Production.Strain %>% 
-  mutate(group = "Biofuel") #%>% t() %>% as.data.frame()
-comparator2 <- wildtype %>% 
-  mutate(group = "wt") #%>% t() %>% as.data.frame()
-
-p_val_calc <- inner_join(comparator1, comparator2, by="group")
-
-
-aov
-
-data_sds <- data %>% 
-  filter(!is.na(primary)) %>% 
-  group_by(primary) %>% 
-  summarise_all(list(sd = sd)) %>% 
-  column_to_rownames("primary") %>% t() %>% as.data.frame()
-
-# allgenes <- d %>% filter(pvalue <= 0.05) %>% 
-#   mutate(neg_pL10 = -1*(log10(pvalue)), 
-#          l2change = (ifelse(Fold_Change>0, log2(Fold_Change), (-1*log2(-1*Fold_Change))))) %>% 
-#   mutate(color_cat = ifelse(neg_pL10 > 1.3, 1, 0))
-```
-
-```{r}
-# Volcano plot from microarray project file. Specialize it for this project.
-expr_diff <- data_means %>% select(wildtype, Biofuel.Production.Strain) %>% 
-  mutate(exp_diff = Biofuel.Production.Strain - wildtype) %>% 
-  mutate(l2change = (ifelse(exp_diff>0, log2(exp_diff), (-1*log2(-1*exp_diff))))) 
-  
-
-
-#### Creating test p-values for plotting ####
-
-test_pval = as.data.frame(0.01*rpois(6071, lambda = 1))
-colnames(test_pval) <- "test_pval"
-expr_diff <- cbind(expr_diff, test_pval)
-
-expr_diff <- expr_diff %>% 
-  mutate(neg_pL10 = -1*(log10(test_pval)))
-
-
-
-ggplot(expr_diff, aes(x=l2change, y=neg_pL10)) +
-  geom_point(size=0.2) +
-  scale_y_continuous(trans="log10")
-```
 
