@@ -4,7 +4,14 @@ author: "Ryan Willett"
 output: html_notebook
 ---
 
-```{r}
+Stated objectives for this project submitted during the declaration are: 
+
+"Analysis of RNA expression data on 6000 genes from 92 sets of yeast RNAseq next generation sequencing samples
+• Clustering analysis to ascertain similarities in gene expression across experimental conditions or mutant backgrounds
+• Display the significant differences in gene expression between experimental conditions or mutant backgrounds
+• Identify features associated with enriched gene sets (e.g. subcellular localization, molecular function, etc)"
+
+```{r, echo = F}
 library(tidyverse)
 library(ggplot2)
 library(ggrepel)
@@ -185,19 +192,6 @@ top_sig_genes <- expr_data %>%
   select(-col_flag) %>% 
   arrange(desc(fold.change)) %>% 
   slice(-101:-(n()-101)) #Return the highest 100 and lowest 100 gene expression changes
-```
-
-Plotting
-```{r}
-# 
-# t <- theme_classic()
-# plot_colors <- scale_color_manual(values = c("black", "red", "green"))
-# 
-# ggplot(data_means_sub, aes(x=l2fc, y=neg_pL10, col=as.factor(col_flag))) + t + 
-#   geom_point(size=0.2) + #+scale_y_continuous(trans="log10")
-#   plot_colors +
-#   #scale_y_continuous(trans = "log2") +
-#   labs(x = "log2 Fold Change in Gene Expression", y = "-log10(p-value)")
 ```
 
 Heatmap

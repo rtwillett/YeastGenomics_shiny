@@ -7,7 +7,9 @@ fluidPage(
       choices = choices
     ),
     sliderInput("slider_pval", label=h3("P-Value Threshold"), min=0.0001, max=0.1, value = 0.05), 
-    sliderInput("slider_expression", label=h3("Fold Gene Expression Change Threshold"), min=1, max=10, value = 2)
+    sliderInput("slider_expression", label=h3("Fold Gene Expression Change Threshold"), min=1, max=10, value = 2), 
+    hr(), 
+    downloadButton("downloadSet", "Download Gene List")
   ), 
   
   mainPanel(tabsetPanel(
@@ -15,7 +17,8 @@ fluidPage(
     tabPanel("Gene Expression",
              fluidRow(column(
                12, plotOutput("volcano")
-             )), #column(5,textOutput("selected_text")) ),
+             )),
+             HTML("<br><br><br>"),
              fluidRow(column(
                12, d3heatmapOutput("heatmap")
              ))),
