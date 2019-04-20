@@ -134,7 +134,9 @@ data_means_sub <- cbind(data_means_sub, pstats=pstats[-1])
 data_means_sub <- data_means_sub %>% 
   mutate(fold.change = data_means_sub[,3]/data_means_sub[,2],
          l2fc = (log2(data_means_sub[,3]) - log2(data_means_sub[,2])), 
-         neg_pL10 = -1*log10(pstats))
+         neg_pL10 = -1*log10(pstats)) %>% 
+  mutate(l2fc = ifelse(l2fc == Inf, 10, ifelse(l2fc == -Inf, -10, l2fc))) %>% # Imputing in a floor and ceiling value to +/- Inf
+  mutate(fold.change = ifelse(fold.change == Inf, 10, ifelse(fold.change == -Inf, -10, fold.change)))
 
 
 
@@ -142,43 +144,73 @@ data_means_sub <- data_means_sub %>%
 
 Preparing the data for plotting
 ```{r}
-
 data_means_sub <- data_means_sub %>% 
-  mutate(col_flag = ifelse(((l2fc>=1 | l2fc<=-1) & neg_pL10 > 1.3),1,0)) %>% 
-  mutate(l2fc = ifelse(l2fc == Inf, 10, ifelse(l2fc == -Inf, -10, l2fc))) %>% # Imputing in a floor and ceiling value to +/- Inf
-  mutate(fold.change = ifelse(fold.change == Inf, 10, ifelse(fold.change == -Inf, -10, fold.change)))
-
-
-sig_genes <- data_means_sub %>% 
-  filter(col_flag == 1 & !is.na(fold.change)) %>% 
-  select(-col_flag) %>% 
-  arrange(desc(fold.change))
+  mutate(col_flag = ifelse(((l2fc>=1 | l2fc<=-1) & neg_pL10 > 1.3),1,0)) 
 ```
 
-Plotting
 ```{r}
+write.csv(data_means_sub, file = "./data/expression_data.csv", row.names = F)
+```
 
+```{r}
+expr_data <- read.csv("./data/expression_data.csv", stringsAsFactors = F)
+```
+
+Preparing the data for plotting
+```{r}
 t <- theme_classic()
 plot_colors <- scale_color_manual(values = c("black", "red", "green"))
 
-ggplot(data_means_sub, aes(x=l2fc, y=neg_pL10, col=as.factor(col_flag))) + t + 
+n1 <- 0.05
+n2 <- 2
+
+data_means_sub %>% 
+  mutate(col_flag = ifelse(((l2fc>=log2(n2) | l2fc<=-log2(n2)) & neg_pL10 > -1*log10(n1)),1,0)) %>% 
+  ggplot(aes(x=l2fc, y=neg_pL10, col=as.factor(col_flag))) + t + 
   geom_point(size=0.2) + #+scale_y_continuous(trans="log10")
   plot_colors +
   #scale_y_continuous(trans = "log2") +
   labs(x = "log2 Fold Change in Gene Expression", y = "-log10(p-value)")
 ```
 
+```{r}
+sig_genes <- expr_data %>% 
+  mutate(col_flag = ifelse(((l2fc>=1 | l2fc<=-1) & neg_pL10 > 1.3),1,0)) %>% 
+  filter(col_flag == 1 & !is.na(fold.change)) %>% 
+  select(-col_flag)
+
+top_sig_genes <- expr_data %>% 
+  mutate(col_flag = ifelse(((l2fc>=1 | l2fc<=-1) & neg_pL10 > 1.3),1,0)) %>% 
+  filter(col_flag == 1 & !is.na(fold.change)) %>% 
+  select(-col_flag) %>% 
+  arrange(desc(fold.change)) %>% 
+  slice(-101:-(n()-101)) #Return the highest 100 and lowest 100 gene expression changes
+```
+
+Plotting
+```{r}
+# 
+# t <- theme_classic()
+# plot_colors <- scale_color_manual(values = c("black", "red", "green"))
+# 
+# ggplot(data_means_sub, aes(x=l2fc, y=neg_pL10, col=as.factor(col_flag))) + t + 
+#   geom_point(size=0.2) + #+scale_y_continuous(trans="log10")
+#   plot_colors +
+#   #scale_y_continuous(trans = "log2") +
+#   labs(x = "log2 Fold Change in Gene Expression", y = "-log10(p-value)")
+```
+
 Heatmap
 ```{r}
-hm_d <- data %>% t() %>% as.data.frame()
+hm_d <- data %>% filter(primary == input1 | primary == input2) %>% select(-primary) %>% t() %>% as.data.frame()
 colnames(hm_d) <- as.character(unlist(hm_d[1,]))
 hm_d <- hm_d[-1,]
 hm_d <- hm_d %>% rownames_to_column("genes")
 
-sigs <- sig_genes[,1, drop =F]
+sigs <- top_sig_genes[,1, drop =F]
 sigs_join <- merge(sigs, hm_d, by="genes")
 sigs_join <- sigs_join %>% column_to_rownames("genes") %>% as.matrix()
-sigs_join <- apply(sigs_join, 2, as.numeric)
+sigs_join <- apply(sigs_join, 2, as.numeric) # Converting character matrix to numeric matrix for heatmap calculation
 heatmap(sigs_join, scale = "row", Rowv = NA)
 ```
 
