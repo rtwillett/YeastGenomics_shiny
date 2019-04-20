@@ -46,7 +46,7 @@ data <- data %>%
   mutate(primary = gsub("^DDY.*", "Strain.W303", primary)) %>% 
   mutate(primary = gsub("^E.*", "Ethanol", primary)) %>% 
   mutate(primary = gsub("^G.*", "Glucose", primary)) %>% 
-  mutate(primary = gsub("^hybrid.*", "hybrid cerevisiae x paradoxus", primary)) %>% select(-secondary, -ID) %>% 
+  mutate(primary = gsub("^hybrid.*", "hybrid cerevisiae x paradoxus", primary)) %>% select(-secondary) %>% 
   filter(!is.na(primary))
 
 
@@ -60,12 +60,44 @@ data %>% group_by(primary) %>% tally()
 levels(factor(data$primary))
 ```
 
+Calculating the baseline statistics
+```{r}
+#Descriptive statistics
+
+data_means <- data %>%
+  select(-ID) %>% 
+  group_by(primary) %>% 
+  summarise_all(list(mean = mean)) %>% 
+  column_to_rownames("primary") %>% 
+  t() %>% as.data.frame()  # Transposing the df (converts to matrix) and reclassifying as a df
+
+data_sds <- data %>% 
+  select(-ID) %>% 
+  group_by(primary) %>% 
+  summarise_all(list(sd = sd)) %>% 
+  column_to_rownames("primary") %>% 
+  t() %>% as.data.frame()  # Transposing the df (converts to matrix) and reclassifying as a df
+
+```
+
+```{r}
+write.csv(data, file = "./data/yeast_raw.csv", row.names = F)
+write.csv(data_means, file = "./data/yeast_means.csv")
+write.csv(data_sds, file = "./data/yeast_sds.csv")
+```
+
+```{r}
+data <- read.csv("./data/yeast_raw.csv", stringsAsFactors = F, header = T)
+data_means <- read.csv("./data/yeast_means.csv", stringsAsFactors = F, header = T, row.names=1)
+```
+
+
 Filtering with the inputs from the user
 ```{r}
 input1 <- "wildtype"
 input2 <- "Biofuel.Production.Strain"
 
-data_subcat <- data %>% filter(primary == input1 | primary == input2) # Filtering for the groups to be compared
+#data_subcat <- data %>% filter(primary == input1 | primary == input2) # Filtering for the groups to be compared
 ```
 
 Evaluation of the statistical difference between the selected groups. This will be between 2 groups, so it's a t-test
@@ -77,33 +109,15 @@ p_eval <- function(x, y) {
 }
 ```
 
-
-```{r}
-#Descriptive statistics
-
-data_means <- data %>%
-  group_by(primary) %>% 
-  summarise_all(list(mean = mean)) %>% 
-  column_to_rownames("primary") %>% 
-  t() %>% as.data.frame()  # Transposing the df (converts to matrix) and reclassifying as a df
-
-data_sds <- data %>% 
-  group_by(primary) %>% 
-  summarise_all(list(sd = sd)) %>% 
-  column_to_rownames("primary") %>% 
-  t() %>% as.data.frame()  # Transposing the df (converts to matrix) and reclassifying as a df
-
-```
-
 ```{r}
 
-subcat_in1 <- data_subcat %>% filter(primary == input1)
+subcat_in1 <- data %>% filter(primary == input1)
 
-subcat_in2 <- data_subcat %>% filter(primary == input2)
+subcat_in2 <- data %>% filter(primary == input2)
 
 pstats <- c()
 
-for (c in 1:(ncol(data_subcat)-1)){ 
+for (c in 2:(ncol(data)-1)){ 
   test1 <- subcat_in1[,c]
   test2 <- subcat_in2[,c]
   
@@ -115,7 +129,7 @@ for (c in 1:(ncol(data_subcat)-1)){
 ```{r}
 data_means_sub <- data_means %>% select(input1, input2) %>% rownames_to_column("genes") %>% mutate(genes = gsub("_mean", "", genes))
 
-data_means_sub <- cbind(data_means_sub, pstats)
+data_means_sub <- cbind(data_means_sub, pstats=pstats[-1])
 
 data_means_sub <- data_means_sub %>% 
   mutate(fold.change = data_means_sub[,3]/data_means_sub[,2],
@@ -126,20 +140,48 @@ data_means_sub <- data_means_sub %>%
 
 ```
 
+Preparing the data for plotting
 ```{r}
+
+data_means_sub <- data_means_sub %>% 
+  mutate(col_flag = ifelse(((l2fc>=1 | l2fc<=-1) & neg_pL10 > 1.3),1,0)) %>% 
+  mutate(l2fc = ifelse(l2fc == Inf, 10, ifelse(l2fc == -Inf, -10, l2fc))) %>% # Imputing in a floor and ceiling value to +/- Inf
+  mutate(fold.change = ifelse(fold.change == Inf, 10, ifelse(fold.change == -Inf, -10, fold.change)))
+
+
+sig_genes <- data_means_sub %>% 
+  filter(col_flag == 1 & !is.na(fold.change)) %>% 
+  select(-col_flag) %>% 
+  arrange(desc(fold.change))
+```
+
+Plotting
+```{r}
+
 t <- theme_classic()
 plot_colors <- scale_color_manual(values = c("black", "red", "green"))
-#### Creating test p-values for plotting ####
-
-data_means_sub <- data_means_sub %>% mutate(col_flag = ifelse(((l2fc>=1 | l2fc<=-1) & neg_pL10 > 1.3),1,0))
-
-sig_genes <- data_means_sub %>% filter(col_flag == 1) %>% select(-col_flag)
 
 ggplot(data_means_sub, aes(x=l2fc, y=neg_pL10, col=as.factor(col_flag))) + t + 
   geom_point(size=0.2) + #+scale_y_continuous(trans="log10")
   plot_colors +
+  #scale_y_continuous(trans = "log2") +
   labs(x = "log2 Fold Change in Gene Expression", y = "-log10(p-value)")
 ```
+
+Heatmap
+```{r}
+hm_d <- data %>% t() %>% as.data.frame()
+colnames(hm_d) <- as.character(unlist(hm_d[1,]))
+hm_d <- hm_d[-1,]
+hm_d <- hm_d %>% rownames_to_column("genes")
+
+sigs <- sig_genes[,1, drop =F]
+sigs_join <- merge(sigs, hm_d, by="genes")
+sigs_join <- sigs_join %>% column_to_rownames("genes") %>% as.matrix()
+sigs_join <- apply(sigs_join, 2, as.numeric)
+heatmap(sigs_join, scale = "row", Rowv = NA)
+```
+
 
 Clustering analysis
 ```{r}
