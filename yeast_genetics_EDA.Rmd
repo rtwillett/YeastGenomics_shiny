@@ -177,7 +177,8 @@ data_means_sub %>%
   geom_point(size=0.2) + #+scale_y_continuous(trans="log10")
   plot_colors +
   #scale_y_continuous(trans = "log2") +
-  labs(x = "log2 Fold Change in Gene Expression", y = "-log10(p-value)")
+  labs(x = "log2 Fold Change in Gene Expression", y = "-log10(p-value)") +
+  guides(col=F)
 ```
 
 ```{r}

@@ -1,0 +1,29 @@
+body {
+    background-color: #EBF9FB;
+    color: #535A5B;
+    font-family: Verdana, Arial, sans-serif;
+}
+
+a {
+  background-color: #535A5B;
+  color: white;
+}
+
+a:hover {
+  color: #535A5B;
+  font-weight: bold;
+}
+
+.tab-pane {
+  background-color: white;
+}
+
+hr {
+  color: #535A5B;
+}
+
+#top {
+  color: white;
+  background-color: #535A5B;
+  padding: 10px
+}
