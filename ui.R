@@ -27,36 +27,5 @@ fluidPage(
     tabPanel("Gene List",
              tableOutput("top_siggenes_table"))
   ))
-  ))
- 
-
-# 
-# shinyUI(dashboardPage(skin = "green",
-#   dashboardHeader(title = "Yeast Transcriptomics Browser"), 
-#   
-#   dashboardSidebar(
-#     img(src="yeast.png", width = "100%"),
-#     sidebarMenu(
-#       menuItem("Background", tabName = "bg", icon = icon("bg")), 
-#       menuItem("Gene Expression", tabName = "expression", icon = icon("expression")), 
-#       menuItem("Cluster Analysis", tabName = "cluster", icon = icon("cluster"))
-#     ), 
-#     selectizeInput("selected", 
-#                    "Select Genomics Dataset", 
-#                    choices) #, choice1
-#   ), 
-#   
-#   dashboardBody(
-#     tabItems(
-#       tabItem(tabName = "bg"), 
-#       tabItem(tabName = "expression", 
-#               fluidRow(
-#                 plotOutput("volcano")
-#               )), 
-#       tabItem(tabName = "cluster", 
-#               fluidRow(
-#                 plotOutput("cluster")
-#               ))
-#     )
-#   )
-#   )
+  )
+)
