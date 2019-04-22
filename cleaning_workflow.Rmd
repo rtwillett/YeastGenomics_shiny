@@ -106,8 +106,15 @@ data_means <- read.csv("./data/yeast_means.csv", stringsAsFactors = F, header = 
 
 Filtering with the inputs from the user
 ```{r}
-input1 <- "wildtype"
-input2 <- "Biofuel.Production.Strain"
+input_wt <- "wildtype"
+input_biofuel <- "Biofuel.Production.Strain"
+
+input_15C <- "15 deg"
+input_30C <- "30 deg"
+input_37C <- "37 deg"
+
+input_ethanol <- "Ethanol"
+input_glucose <- "Glucose"
 
 #data_subcat <- data %>% filter(primary == input1 | primary == input2) # Filtering for the groups to be compared
 ```
@@ -123,25 +130,42 @@ p_eval <- function(x, y) {
 
 ```{r}
 
-subcat_in1 <- data %>% filter(primary == input1)
-
-subcat_in2 <- data %>% filter(primary == input2)
-
-pstats <- c()
-
-for (c in 2:(ncol(data)-1)){ 
-  test1 <- subcat_in1[,c]
-  test2 <- subcat_in2[,c]
+compare_pval <- function(input1, input2) {
   
-  p <- p_eval(test1, test2)
-  pstats[c] <- p # Build up p-values list into a vector
+  subcat_in1 <<- data %>% filter(primary == input1)
+
+  subcat_in2 <- data %>% filter(primary == input2)
+
+  pstats <<- c()
+
+  for (c in 2:(ncol(data) - 1)) {
+    test1 <- subcat_in1[, c]
+    test2 <- subcat_in2[, c]
+
+    p <- p_eval(test1, test2)
+    pstats[c] <<- p # Build up p-values list into a vector
+  }
+  return(pstats)
 }
 ```
 
 ```{r}
+p_BF <- compare_pval(input_wt, input_biofuel)
+
+p_temp_low <- compare_pval(input_30C, input_15C)
+
+p_temp_high <- compare_pval(input_30C, input_37C)
+
+p_carbon <- compare_pval(input_ethanol, input_glucose)
+```
+
+
+```{r}
+build_datatable <- function(input1, input2, p) {
+
 data_means_sub <- data_means %>% select(input1, input2) %>% rownames_to_column("genes") %>% mutate(genes = gsub("_mean", "", genes))
 
-data_means_sub <- cbind(data_means_sub, pstats=pstats[-1])
+data_means_sub <- cbind(data_means_sub, pstats=p[-1])
 
 data_means_sub <- data_means_sub %>% 
   mutate(fold.change = data_means_sub[,3]/data_means_sub[,2],
@@ -150,36 +174,29 @@ data_means_sub <- data_means_sub %>%
   mutate(l2fc = ifelse(l2fc == Inf, 10, ifelse(l2fc == -Inf, -10, l2fc))) %>% # Imputing in a floor and ceiling value to +/- Inf
   mutate(fold.change = ifelse(fold.change == Inf, 10, ifelse(fold.change == -Inf, -10, fold.change)))
 
-
-
-```
-
-Preparing the data for plotting
-```{r}
-data_means_sub <- data_means_sub %>% 
-  mutate(col_flag = ifelse(((l2fc>=1 | l2fc<=-1) & neg_pL10 > 1.3),1,0)) 
+return(data_means_sub)
+}
 ```
 
 ```{r}
-write.csv(data_means_sub, file = "./data/expression_data.csv", row.names = F)
+df_biofuel <- build_datatable(input_wt, input_biofuel, p_BF)
+
+df_high <- build_datatable("X30.deg", "X37.deg", p_temp_high)
+
+df_low <- build_datatable("X30.deg", "X15.deg", p_temp_low)
+
+df_carbon <- build_datatable(input_glucose, input_ethanol, p_carbon)
 ```
 
-Testing the user selection and conditional load of datatable
 ```{r}
-select_test <- "Wildtype vs Biofuel Strain"
-
-upload_test <- switch(select_test, 
-                      "Wildtype vs Biofuel Strain" = read.csv("./data/expression_biofuel.csv", stringsAsFactors = F), 
-                      "Normal vs High Temperature" = read.csv("./data/expression_high.csv", stringsAsFactors = F), 
-                      "Normal vs Low Temperature" = read.csv("./data/expression_low.csv", stringsAsFactors = F), 
-                      "Glucose vs Ethanol Carbon Source" = read.csv("./data/expression_carbon.csv", stringsAsFactors = F)
-                      )
+write.csv(df_biofuel, file = "./data/expression_biofuel.csv", row.names = F)
+write.csv(df_high, file = "./data/expression_high.csv", row.names = F)
+write.csv(df_low, file = "./data/expression_low.csv", row.names = F)
+write.csv(df_carbon, file = "./data/expression_carbon.csv", row.names = F)
 ```
 
-
-
 ```{r}
-expr_data <- read.csv("./data/expression_data.csv", stringsAsFactors = F)
+expr_data <- read.csv("./data/expression_biofuel.csv", stringsAsFactors = F)
 ```
 
 Preparing the data for plotting
