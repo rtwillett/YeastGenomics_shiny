@@ -44,7 +44,8 @@ shinyServer(function(input, output){
   output$volcano <- renderPlot(expr_data() %>% 
     mutate(col_flag = ifelse(((l2fc>=log2(s_expr()) | l2fc<=-log2(s_expr())) & neg_pL10 > -1*log10(s_pval())),1,0)) %>% 
     ggplot(aes(x=l2fc, y=neg_pL10, col=as.factor(col_flag))) + t + 
-    geom_point(size=0.2) +
+    geom_point(aes(size=col_flag)) +
+    scale_size(range=c(0.5, 2)) +
     plot_colors +
       labs(
         x = "log2 Fold Change in Gene Expression",
@@ -52,7 +53,7 @@ shinyServer(function(input, output){
         title = "Expression Differences of Significantly Expressed Genes",
         caption = "Genes of interest appear in red"
       ) +
-    guides(col=F) # Removes the legend
+    guides(col=F, size=F) # Removes the legend
   )
   
   # Assigns a flag based on the input thresholds and filters based on that flag (NAs removed). 

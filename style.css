@@ -18,11 +18,19 @@ a:hover {
   background-color: white;
 }
 
+.redtext {
+  color: red;
+}
+
 hr {
   color: #535A5B;
 }
 
-#top {
+#description {
+  margin: 20px;
+}
+
+h1 {
   color: white;
   background-color: #535A5B;
   padding: 10px
