@@ -94,7 +94,7 @@ shinyServer(function(input, output){
       paste("data-", Sys.Date(), ".csv", sep="")
     }, 
     content =  function(file){
-      write.csv(sig_genes(), file, row.names=F)
+      write.csv(sig_genes2(), file, row.names=F)
     })
 }
 )
