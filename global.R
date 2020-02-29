@@ -7,6 +7,7 @@ library(d3heatmap)
 
 # Upload files that are needed for the visualization
 data <- read.csv("./data/yeast_raw.csv", stringsAsFactors = F, header = T)
+colnames(data)[colnames(data) == 'primary'] <- "condition"
 #data_means <- read.csv("./data/yeast_means.csv", stringsAsFactors = F, header = T, row.names=1)
 #expr_data <- read.csv("./data/expression_data.csv", stringsAsFactors = F)
 

@@ -39,11 +39,11 @@ fluidPage(
              fluidRow(column(
                12, div(id = "description", 
                  HTML("<p>This heatmap show the expression of each gene across replicate samples in the same experiment. The green 
-                      and red color indicate expression levels higher and lower than the mean, respectively. </p>"), 
+                      and red color indicate expression levels higher and lower than the mean, respectively. Refer the table below to match sample 
+                      ID labels to experimental condition (e.g. temperature or strain)</p>"), 
                  HTML("<p><u>X-axis:</u> Gene name</p>"), 
-                 HTML("<p><u>Y-axis:</u> Sample Name</p>"), 
-                 HTML("<p><i>I will soon implement a panel that displays a table displaying the sample name and the experimental 
-                      condition.</i></p>")
+                 HTML("<p><u>Y-axis:</u> Sample ID</p>"), 
+                 dataTableOutput('sampletable')
              ))
              )),
     tabPanel("Gene List",  # Table of genes 

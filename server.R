@@ -66,8 +66,12 @@ shinyServer(function(input, output){
     
   # The original dataset (with replicates is subset based using the significant gene vector from above as the column slice basis)
   # Dataset is converted to a matrix for use in the heatmap below.
-  sig_data <- reactive({ data %>% filter(primary == input1() | primary == input2()) %>% 
+  sig_data <- reactive({ data %>% filter(condition == input1() | condition == input2()) %>% 
     select(ID, sig_genes1()) %>% column_to_rownames("ID") %>% as.matrix()
+  })
+  
+  sig_labels <- reactive({ data %>% filter(condition == input1() | condition == input2()) %>% 
+      select(ID, condition)
   })
     
   # The matrix of significantly expressed genes from above is plotted as a heatmap and run dendrograms using the interactive d3 library
@@ -96,5 +100,7 @@ shinyServer(function(input, output){
     content =  function(file){
       write.csv(sig_genes2(), file, row.names=F)
     })
-}
-)
+  
+  output$sampletable <- renderDataTable(sig_labels())
+  
+})

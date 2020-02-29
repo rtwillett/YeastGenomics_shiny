@@ -163,18 +163,18 @@ p_carbon <- compare_pval(input_ethanol, input_glucose)
 ```{r}
 build_datatable <- function(input1, input2, p) {
 
-data_means_sub <- data_means %>% select(input1, input2) %>% rownames_to_column("genes") %>% mutate(genes = gsub("_mean", "", genes))
-
-data_means_sub <- cbind(data_means_sub, pstats=p[-1])
-
-data_means_sub <- data_means_sub %>% 
-  mutate(fold.change = data_means_sub[,3]/data_means_sub[,2],
-         l2fc = (log2(data_means_sub[,3]) - log2(data_means_sub[,2])), 
-         neg_pL10 = -1*log10(pstats)) %>% 
-  mutate(l2fc = ifelse(l2fc == Inf, 10, ifelse(l2fc == -Inf, -10, l2fc))) %>% # Imputing in a floor and ceiling value to +/- Inf
-  mutate(fold.change = ifelse(fold.change == Inf, 10, ifelse(fold.change == -Inf, -10, fold.change)))
-
-return(data_means_sub)
+  data_means_sub <- data_means %>% select(input1, input2) %>% rownames_to_column("genes") %>% mutate(genes = gsub("_mean", "", genes))
+  
+  data_means_sub <- cbind(data_means_sub, pstats=p[-1])
+  
+  data_means_sub <- data_means_sub %>% 
+    mutate(fold.change = data_means_sub[,3]/data_means_sub[,2],
+           l2fc = (log2(data_means_sub[,3]) - log2(data_means_sub[,2])), 
+           neg_pL10 = -1*log10(pstats)) %>% 
+    mutate(l2fc = ifelse(l2fc == Inf, 10, ifelse(l2fc == -Inf, -10, l2fc))) %>% # Imputing in a floor and ceiling value to +/- Inf
+    mutate(fold.change = ifelse(fold.change == Inf, 10, ifelse(fold.change == -Inf, -10, fold.change)))
+  
+  return(data_means_sub)
 }
 ```
 
@@ -198,6 +198,12 @@ write.csv(df_carbon, file = "./data/expression_carbon.csv", row.names = F)
 ```{r}
 expr_data <- read.csv("./data/expression_biofuel.csv", stringsAsFactors = F)
 ```
+
+```{r}
+input1 <- "30 deg"
+input2 <- "37 deg"
+```
+
 
 Preparing the data for plotting
 ```{r}
@@ -243,7 +249,7 @@ sig_data <- data %>% filter(primary == input1 | primary == input2) %>%
 ```
 
 
-Heatmap
+
 ```{r}
 hm_d <- data %>% filter(primary == input1 | primary == input2) %>% select(-primary) %>% t() %>% as.data.frame()
 colnames(hm_d) <- as.character(unlist(hm_d[1,]))
@@ -253,8 +259,8 @@ hm_d <- hm_d %>% rownames_to_column("genes")
 sigs <- top_sig_genes[,1, drop =F]
 sigs_join <- merge(sigs, hm_d, by="genes")
 sigs_join <- sigs_join %>% column_to_rownames("genes") %>% as.matrix()
-sigs_join <- apply(sigs_join, 2, as.numeric) # Converting character matrix to numeric matrix for heatmap calculation
-heatmap(sigs_join, scale = "row", Rowv = NA)
+sigs_join <- apply(sigs_join, 2, as.numeric) # Converting character matrix to numeric matrix for  calculation
+(sigs_join, scale = "row", Rowv = NA)
 ```
 
 
